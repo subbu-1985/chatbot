@@ -9,19 +9,26 @@ from config import Config
 from utils.audio_handler import AudioHandler
 from utils.text_to_speech import TextToSpeech
 
-# Try to import GeminiAPI, fallback to OpenRouterAPI if not available
+# Try to import AI API providers - GeminiAPI or OpenRouterAPI
+gemini_api = None
+API_PROVIDER = None
+
 try:
     from utils.gemini_api import GeminiAPI
     API_PROVIDER = "gemini"
 except ImportError:
     try:
         from utils.openrouter_api import OpenRouterAPI
-        API_PROVIDER = "openrouter"
+        API_PROVIDER = "openrouter" 
     except ImportError:
         API_PROVIDER = None
 
-# Load API key from environment or config
+# Load API key from environment or fallback (first version had hardcoded fallback)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "AIzaSyBljIYoGCRFHOPccj_Xpy5DaNPjvM7Qg5s"
+
+# Ensure API key is available (second version had strict requirement)
+if not GEMINI_API_KEY:
+    raise RuntimeError("GEMINI_API_KEY environment variable must be set")
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -30,11 +37,27 @@ CORS(app)
 # Global variables
 config = Config()
 audio_handler = None
-gemini_api = None
 tts = None
 conversation_history = []
 
-# Enhanced HTML template with premium styling
+# Initialize AI client based on available provider
+if API_PROVIDER == "gemini":
+    try:
+        gemini_api = GeminiAPI(GEMINI_API_KEY)
+    except Exception as e:
+        print(f"Failed to initialize GeminiAPI: {e}")
+        gemini_api = None
+elif API_PROVIDER == "openrouter":
+    try:
+        gemini_api = OpenRouterAPI(GEMINI_API_KEY)  
+    except Exception as e:
+        print(f"Failed to initialize OpenRouterAPI: {e}")
+        gemini_api = None
+else:
+    print("Warning: No valid AI API provider found. Will initialize later.")
+    gemini_api = None
+
+# Enhanced HTML template with premium styling (from first version)
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -1043,20 +1066,25 @@ def initialize_components():
         print("Initializing audio handler...")
         audio_handler = AudioHandler()
 
-        print("Initializing Gemini API...")
-        gemini_api = GeminiAPI(api_key=GEMINI_API_KEY)
+        print("Initializing AI API...")
+        if API_PROVIDER == "gemini" and gemini_api is None:
+            gemini_api = GeminiAPI(api_key=GEMINI_API_KEY)
+        elif API_PROVIDER == "openrouter" and gemini_api is None:
+            gemini_api = OpenRouterAPI(api_key=GEMINI_API_KEY)
+        elif gemini_api is None:
+            raise RuntimeError("No valid AI API provider available")
 
         print("Initializing Text-to-Speech...")
         tts = TextToSpeech()
 
         # Test connections
-        print("Testing Gemini API connection...")
+        print("Testing AI API connection...")
         test_result = gemini_api.test_connection()
         print(test_result)
         if "successful" in test_result:
             print("✓ All components initialized successfully!")
         else:
-            print("⚠ Warning: Gemini API connection test failed")
+            print("⚠ Warning: AI API connection test failed")
 
         return True
 
@@ -1113,6 +1141,10 @@ def stop_recording():
         if not transcribed_text:
             return jsonify({'success': False, 'error': 'Could not transcribe audio'})
 
+        # Check AI client initialized before use (from second version)
+        if gemini_api is None:
+            raise RuntimeError("AI API client is not initialized")
+
         ai_response = gemini_api.generate_response(transcribed_text, conversation_history=conversation_history)
 
         conversation_history.append({"role": "user", "content": transcribed_text})
@@ -1143,6 +1175,10 @@ def send_text():
 
         if not text:
             return jsonify({'success': False, 'error': 'No text provided'})
+
+        # Check AI client initialized before use (from second version)
+        if gemini_api is None:
+            raise RuntimeError("AI API client is not initialized")
 
         ai_response = gemini_api.generate_response(text, conversation_history=conversation_history)
 
@@ -1194,14 +1230,17 @@ def get_status():
 
 @app.route('/model_info')
 def get_model_info():
-    """Get Gemini model info."""
+    """Get AI model info."""
     try:
+        if gemini_api is None:
+            return jsonify({'success': False, 'error': 'AI API client not initialized'})
+        
         info = gemini_api.get_model_info(gemini_api.model)
         return jsonify({'success': True, 'model_info': info})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# Example Gemini API payload
+# Example Gemini API payload (from first version)
 payload = {
     "contents": [
         {

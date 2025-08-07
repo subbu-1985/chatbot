@@ -5,7 +5,7 @@ class GeminiAPI:
     """Handles API communication with Google Gemini for AI text generation."""
 
     def __init__(self, api_key=None):
-        self.api_key = api_key or "place the api key here"
+        self.api_key = api_key or "AIzaSyBljIYoGCRFHOPccj_Xpy5DaNPjvM7Qg5s"
         self.base_url = "https://generativelanguage.googleapis.com/v1beta"
         self.model = "gemini-2.0-flash"
         self.endpoint = f"{self.base_url}/models/{self.model}:generateContent"

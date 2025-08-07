@@ -21,7 +21,7 @@ except ImportError:
         API_PROVIDER = None
 
 # Load API key from environment or config
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or " palce your api key"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "AIzaSyBljIYoGCRFHOPccj_Xpy5DaNPjvM7Qg5s"
 
 # Initialize Flask app
 app = Flask(__name__)

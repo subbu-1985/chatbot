@@ -8,7 +8,7 @@ flask-cors
 webrtcvad
 numpy
 pipwin
-
+gunicorn==23.0.0
 
 # Install PyAudio separately after installing pipwin:
 # pipwin install pyaudio
